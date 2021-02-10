@@ -1,0 +1,51 @@
+{
+  "name": "repo_dashboard",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint-fix": "eslint --cache --format=pretty . --fix; exit 0",
+    "lint-styles-fix": "stylelint --ignore-path .eslintignore '**/*.*(css|scss)' --syntax scss --fix; exit 0",
+    "postlint-fix": "prettier --ignore-path .eslintignore --single-quote --write '**/*.{*{ts,tsx,json},babelrc,eslintrc,prettierrc,stylelintrc}'",
+    "postlint-styles-fix": "prettier --ignore-path .eslintignore --single-quote --write '**/*.{css,scss}'"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.1.4"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^11.0.0",
+    "@commitlint/config-conventional": "^11.0.0",
+    "cross-env": "^7.0.3",
+    "husky": "^4.3.8",
+    "lint-staged": "^10.5.3",
+    "prettier": "^2.2.1",
+    "stylelint": "^13.9.0",
+    "stylelint-config-prettier": "^8.0.2",
+    "stylelint-config-standard": "^20.0.0",
+    "stylelint-scss": "^3.19.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "cross-env NODE_ENV=development eslint --cache --format=pretty --fix",
+      "prettier --ignore-path .eslintignore --single-quote --write",
+      "git add"
+    ],
+    "{*.json,.{babelrc,eslintrc,prettierrc,stylelintrc}}": [
+      "prettier --ignore-path .eslintignore --parser json --write",
+      "git add"
+    ],
+    "*.{css,scss}": [
+      "stylelint --ignore-path .eslintignore --syntax scss --fix --allow-empty-input",
+      "prettier --ignore-path .eslintignore --single-quote --write",
+      "git add"
+    ],
+    "*.{yml,md}": [
+      "prettier --ignore-path .eslintignore --single-quote --write",
+      "git add"
+    ]
+  }
+}

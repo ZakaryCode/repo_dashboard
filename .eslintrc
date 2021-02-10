@@ -1,0 +1,71 @@
+{
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended",
+    "standard",
+    "prettier/babel",
+    "prettier/react",
+    "prettier/standard",
+    "prettier/@typescript-eslint"
+  ],
+  "plugins": [
+    "@typescript-eslint",
+    "babel",
+    "react",
+    "standard",
+    "react-hooks",
+    "simple-import-sort"
+  ],
+  "env": {
+    "es6": true,
+    "node": true
+  },
+  "parserOptions": {
+    "sourceType": "module"
+  },
+  "rules": {
+    "@typescript-eslint/no-var-requires": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/explicit-member-accessibility": "off",
+    "@typescript-eslint/interface-name-prefix": "off",
+    "@typescript-eslint/camelcase": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-use-before-define": [
+      "error",
+      {
+        "functions": false
+      }
+    ],
+    "camelcase": "off",
+    "handle-callback-err": "off",
+    "react/prop-types": "off",
+    "react/react-in-jsx-scope": "off",
+    "prefer-promise-reject-errors": "off",
+    "promise/param-names": "off",
+    "import/first": "off",
+    "import/no-duplicates": "off",
+    "jsx-quotes": ["error", "prefer-double"],
+    "simple-import-sort/imports": [
+      "error",
+      {
+        "groups": [
+          // 不以.开头的样式文件
+          ["^[^.][\\S]+\\.s?css$"],
+          // 副作用引入的非样式文件
+          ["^\\u0000[\\S]+?\\.?(?!s?css$)"],
+          // 不以.开头的非样式文件
+          ["^[^.][\\S]+?\\.?(?!s?css$)"],
+          // 以.开头的非样式文件
+          ["^\\.[\\S]+?\\.?(?!s?css$)"],
+          // 以.开头的样式文件
+          ["^\\.[\\S]+\\.s?css$"]
+        ]
+      }
+    ],
+    "simple-import-sort/exports": "error",
+    "space-before-function-paren": "off",
+    "standard/no-callback-literal": "warn"
+  }
+}

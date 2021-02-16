@@ -2,5 +2,18 @@
   "name": "Github repository's Dashboard",
   "version": "1.0",
   "description": "Github repository's Dashboard!",
-  "manifest_version": 2
+  "manifest_version": 2,
+  "content_scripts": [
+    {
+      "matches": ["*://github.com/"],
+      "js": ["./src/index.tsx"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://github.com/*"],
+      "js": ["./src/reps.tsx"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": ["storage"]
 }

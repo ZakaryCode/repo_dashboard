@@ -1,0 +1,11 @@
+node_modules/
+examples/
+**/dest
+**/lib
+types/
+!types/index.d.ts
+__fixtures__/extensions/basic-dist
+coverage
+jest_html_reporters.html
+package-lock.json
+*.log

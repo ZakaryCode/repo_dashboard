@@ -18,7 +18,7 @@
   ],
   "env": {
     "es6": true,
-    "node": true
+    "browser": true
   },
   "parserOptions": {
     "sourceType": "module"
@@ -47,6 +47,7 @@
     "import/first": "off",
     "import/no-duplicates": "off",
     "jsx-quotes": ["error", "prefer-double"],
+    "no-use-before-define": "off",
     "simple-import-sort/imports": [
       "error",
       {

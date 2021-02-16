@@ -3,6 +3,7 @@ import typescript from '@rollup/plugin-typescript'
 import commonjs from '@rollup/plugin-commonjs'
 import { emptyDir } from 'rollup-plugin-empty-dir'
 import { terser } from 'rollup-plugin-terser'
+import { bundleImports } from 'rollup-plugin-bundle-imports'
 
 import {
   chromeExtension,
@@ -16,7 +17,12 @@ export default {
   output: {
     dir: 'dist',
     format: 'esm',
-    fileName: 'bundle[hash].js'
+    banner: `var process = {
+  env: {
+    NODE_ENV: ${isProduction ? '"production"' : '"development"'}
+  }
+}
+`    
   },
   plugins: [
     // always put chromeExtension() before other plugins
@@ -26,6 +32,7 @@ export default {
     resolve(),
     typescript(),
     commonjs({ extensions: ['.js', '.ts', '.jsx', '.tsx'] }),
+    bundleImports(),
     emptyDir(),
     isProduction && terser()
   ],

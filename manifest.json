@@ -6,14 +6,9 @@
   "content_scripts": [
     {
       "matches": ["*://github.com/"],
-      "js": ["./src/index.tsx"],
-      "run_at": "document_end"
-    },
-    {
-      "matches": ["*://github.com/*"],
-      "js": ["./src/reps.tsx"],
+      "js": ["./src/content.tsx"],
       "run_at": "document_end"
     }
   ],
-  "permissions": ["storage"]
+  "permissions": ["cookies", "storage"]
 }

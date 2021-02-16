@@ -2,3 +2,4 @@ configs
 *.js
 *.jsx
 .stylelintrc
+assets

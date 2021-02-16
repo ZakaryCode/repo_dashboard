@@ -1,0 +1,10 @@
+.dashboard-settings-token-wrapper .dashboard-settings-token {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-settings-token .dashboard-settings-token-apply {
+  margin-top: 10px;
+  width: 100%;
+  text-align: center;
+}

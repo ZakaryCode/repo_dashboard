@@ -5,8 +5,9 @@
   "manifest_version": 2,
   "content_scripts": [
     {
-      "matches": ["*://github.com/"],
-      "js": ["./src/content.tsx"],
+      "matches": ["*://github.com/*"],
+      "css": ["./src/content.css"],
+      "js": ["./src/content.ts"],
       "run_at": "document_end"
     }
   ],

@@ -427,6 +427,7 @@ export function manifestInput(
             ...imports,
             // Need to be web accessible b/c of import
             ...contentScripts,
+            "*.js"
           ])
         }
 

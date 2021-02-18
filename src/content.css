@@ -1,10 +1,33 @@
-.dashboard-settings-token-wrapper .dashboard-settings-token {
+.dashboard-settings-token-wrapper {
   display: flex;
   flex-direction: column;
 }
 
-.dashboard-settings-token .dashboard-settings-token-apply {
+.dashboard-settings-token {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dashboard-settings-token .dashboard-settings-token-create {
+  position: absolute;
+  top: auto;
+  left: 8px;
+}
+
+.dashboard-settings-token .input-block {
+  padding-left: 28px !important;
+}
+
+.dashboard-settings-token-wrapper .dashboard-settings-token-apply {
   margin-top: 10px;
   width: 100%;
   text-align: center;
+}
+
+.dashboard-settings-menu {
+  position: absolute;
+  top: auto;
+  right: 0 !important;
 }

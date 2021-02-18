@@ -18,7 +18,8 @@
     "jsx": "react",
     "jsxFactory": "React.createElement",
     "allowJs": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["global.d.ts"]
   },
   "include": ["src/**/*", "global.d.ts"],
   "exclude": ["node_modules", "dist"],

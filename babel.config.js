@@ -1,8 +1,5 @@
 module.exports = {
   presets: [
-    [{
-      framework: 'react',
-      ts: true
-    }]
+    ["@babel/preset-react"]
   ]
 }

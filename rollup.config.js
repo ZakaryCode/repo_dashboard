@@ -1,4 +1,5 @@
 import resolve from '@rollup/plugin-node-resolve'
+import { babel } from '@rollup/plugin-babel'
 import typescript from '@rollup/plugin-typescript'
 import commonjs from '@rollup/plugin-commonjs'
 import { emptyDir } from 'rollup-plugin-empty-dir'
@@ -22,16 +23,17 @@ export default {
     NODE_ENV: ${isProduction ? '"production"' : '"development"'}
   }
 }
-`    
+`
   },
   plugins: [
     // always put chromeExtension() before other plugins
-    chromeExtension({ browserPolyfill: true, crossBrowser: true }),
+    chromeExtension({ browserPolyfill: true, crossBrowser: true, dynamicImportWrapper: false }),
     simpleReloader(),
     // the plugins below are optional
     resolve(),
     typescript(),
-    commonjs({ extensions: ['.js', '.ts', '.jsx', '.tsx'] }),
+    commonjs({ extensions: ['.js', '.ts', '.jsx', '.tsx'], transformMixedEsModules: true, esmExternals: true, requireReturnsDefault: true }),
+    babel({ babelHelpers: 'bundled', extensions: ['.js', '.ts', '.jsx', '.tsx'] }),
     bundleImports(),
     emptyDir(),
     isProduction && terser()

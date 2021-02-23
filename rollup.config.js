@@ -20,7 +20,7 @@ export default {
     format: 'esm',
     banner: `var process = {
   env: {
-    NODE_ENV: ${isProduction ? '"production"' : '"development"'}
+    NODE_ENV: ${isProduction ? '"production"' : '"production"'}
   }
 }
 `
@@ -32,7 +32,7 @@ export default {
     // the plugins below are optional
     resolve(),
     typescript(),
-    commonjs({ extensions: ['.js', '.ts', '.jsx', '.tsx'], transformMixedEsModules: true, esmExternals: true, requireReturnsDefault: true }),
+    commonjs({ extensions: ['.js', '.ts', '.jsx', '.tsx'], transformMixedEsModules: true, esmExternals: true, requireReturnsDefault: 'preferred' }),
     babel({ babelHelpers: 'bundled', extensions: ['.js', '.ts', '.jsx', '.tsx'] }),
     bundleImports(),
     emptyDir(),

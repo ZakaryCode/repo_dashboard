@@ -48,6 +48,7 @@
     "import/no-duplicates": "off",
     "jsx-quotes": ["error", "prefer-double"],
     "no-use-before-define": "off",
+    "no-undef": "off",
     "simple-import-sort/imports": [
       "error",
       {

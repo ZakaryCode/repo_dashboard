@@ -1,15 +1,18 @@
-import { InMemoryCache } from '@apollo/client/cache/inmemory/inMemoryCache'
-import { NormalizedCacheObject } from '@apollo/client/cache/inmemory/types'
-import { ApolloClient } from '@apollo/client/core/ApolloClient'
-import { setContext } from '@apollo/client/link/context'
-import { createHttpLink } from '@apollo/client/link/http'
-import { useEffect, useState } from 'react'
+import { gql } from '@apollo/client/core'
+import { useCallback, useEffect, useState } from 'react'
 
 import { clientId, clientSecret, tokenName } from '../constants'
+import { pageInfoFields, userFields } from '../constants/fragment'
+import { inputRepository, readRepo } from './db'
+import { queryRepository } from './gql-schema/function'
+import { RateLimit } from './gql-schema/queries'
+import { GithubApiQueue } from './gql-schema/queue'
 import { getQuery, rmQuery } from './index'
+import { getCurrentDate, sleep } from './time'
 
 // Note: Github Graphql 接口可以请求 watchers 参数，但是 collaborators、stargazers 等暂无权限获取，需要改用 RestFul 接口
-// https://api.github.com/repos/nervjs/taro/stargazers
+// https://api.github.com/repos/nervjs/taro/stargazers?per_page=100
+// https://api.github.com/repos/nervjs/taro/watchers?per_page=100
 // https://api.github.com/search/users?q=repos:%3C1+followers:%3C1&page=1&per_page=100
 
 export async function getGithubToken(code: string): Promise<string> {
@@ -27,7 +30,11 @@ export async function getGithubToken(code: string): Promise<string> {
 export function useGithubToken() {
   const [code, setCode] = useState<string>()
   const [token, setToken] = useState<string | null>(null)
-  const [client, setClient] = useState<ApolloClient<NormalizedCacheObject>>()
+  const [client, setClient] = useState<GithubApiQueue>()
+  const [viewer, setViewer] = useState('')
+  const [isSyncing, setSyncing] = useState(false)
+  const [repoData, setRepoData] = useState<unknown>()
+  const [process, setProcess] = useState<[number, number]>([1, 1])
 
   useEffect(() => {
     const c = getQuery().code
@@ -50,41 +57,185 @@ export function useGithubToken() {
         localStorage.setItem(tokenName, token)
         setToken(token)
         window.opener.close()
-      } else {
       }
     })()
     rmQuery(['code'])
   }, [code])
 
   useEffect(() => {
-    const httpLink = createHttpLink({
-      // https://api.github.com/graphql
-      uri: 'https://api.github.com/graphql'
-      // x-ratelimit-limit
-      // x-ratelimit-remaining
-      // x-ratelimit-reset
-      // x-ratelimit-used
-    })
-    const authLink = setContext((_, { headers }) => {
-      // return the headers to the context so httpLink can read them
-      return {
-        headers: {
-          ...headers,
-          authorization: token ? `token ${token}` : '',
-          accept: 'application/json'
-        }
-      }
-    })
-
-    const client = new ApolloClient({
-      link: authLink.concat(httpLink),
-      cache: new InMemoryCache({
-        resultCaching: true
-      })
-    })
-
+    if (!token) return
+    const client = new GithubApiQueue(token)
     setClient(client)
   }, [token])
 
-  return { token, client }
+  useEffect(() => {
+    if (!client) return
+    ;(async () => {
+      try {
+        const { viewer } = await client.query({
+          query: gql`{
+  viewer {
+    login
+    name
+  }
+  ${RateLimit}
+}`
+        })
+        setViewer(viewer.name || viewer.login)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        const pathname = window.location.pathname.replace(/^\//, '')
+        const [owner, name] = pathname.split('/')
+        setRepoData(await readRepo(owner, name))
+      }
+      // console.log(loading, error, data, refetch, networkStatus)
+    })()
+  }, [client])
+
+  const syncProcess = useCallback((cents: number[], denominator: number[]) => {
+    const count = cents.reduce((p, a) => p + a, 0)
+    const total = denominator.reduce((p, a) => p + a, 0)
+    setProcess(([c = 0, t = 0]) => [c + count, total || t])
+  }, [])
+
+  const handleGithubSync = useCallback(
+    async (owner: string, name: string) => {
+      if (!client || isSyncing) return
+      try {
+        setSyncing(true)
+        setProcess([0, 0])
+        const updateAt = getCurrentDate()
+        await syncRepo(client, owner, name, syncProcess, updateAt)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setRepoData(await readRepo(owner, name))
+        setSyncing(false)
+      }
+    },
+    [client, isSyncing, syncProcess]
+  )
+
+  return {
+    token,
+    client,
+    viewer,
+    handleGithubSync,
+    isSyncing,
+    repoData,
+    process
+  }
+}
+
+async function syncRepo(
+  client: GithubApiQueue,
+  owner: string,
+  name: string,
+  syncProcess: (c: number[], d: number[]) => void,
+  updateAt?: number,
+  cursor?: {
+    stargazers?: string
+    watchers?: string
+  },
+  __count?: {
+    stargazers: number
+    watchers: number
+  }
+) {
+  const count = __count || {
+    stargazers: 50,
+    watchers: 50
+  }
+  const stargazersCursor = cursor?.stargazers
+  const watchersCursor = cursor?.watchers
+  const repoSchema = stargazersCursor
+    ? queryRepository(owner, name, {
+        stargazers: stargazersCursor,
+        count: count.stargazers
+      })
+    : watchersCursor
+    ? queryRepository(owner, name, {
+        watchers: watchersCursor,
+        count: count.watchers
+      })
+    : queryRepository(owner, name)
+  await client.runGql({
+    type: 'graphql',
+    query: {
+      query: gql`{
+${repoSchema}
+${RateLimit}
+}
+${pageInfoFields}
+${userFields}`
+    },
+    callback: async ({ data, errors, ...rest }, nextTime) => {
+      const repository = data?.repository || rest?.repository
+      const stargazers = repository?.stargazers
+      const watchers = repository?.watchers
+      await inputRepository(owner, name, repository, updateAt)
+      syncProcess(
+        [stargazers?.nodes?.length || 0, watchers?.nodes?.length || 0],
+        [stargazers?.totalCount || 0, watchers?.totalCount || 0]
+      )
+      const stargazersPageInfo = stargazers?.pageInfo
+      if (
+        stargazersPageInfo &&
+        stargazersPageInfo.hasNextPage &&
+        stargazersPageInfo.endCursor
+      ) {
+        const args: Parameters<typeof syncRepo> = [
+          client,
+          owner,
+          name,
+          syncProcess,
+          updateAt,
+          {
+            stargazers: stargazersPageInfo.endCursor
+          }
+        ]
+        try {
+          await sleep(nextTime)
+          await syncRepo(...args)
+        } catch (error) {
+          count.stargazers /= 2
+          args[6] = count
+          await sleep(nextTime)
+          await syncRepo(...args)
+          console.error(error)
+        }
+      }
+      const watchersPageInfo = watchers?.pageInfo
+      if (
+        watchersPageInfo &&
+        watchersPageInfo.hasNextPage &&
+        watchersPageInfo.endCursor
+      ) {
+        const args: Parameters<typeof syncRepo> = [
+          client,
+          owner,
+          name,
+          syncProcess,
+          updateAt,
+          {
+            watchers: watchersPageInfo.endCursor
+          }
+        ]
+        try {
+          await sleep(nextTime)
+          await syncRepo(...args)
+        } catch (error) {
+          count.watchers /= 2
+          args[6] = count
+          await sleep(nextTime)
+          await syncRepo(...args)
+          console.error(error)
+        }
+      }
+      if (errors) {
+        console.error(errors)
+      }
+    }
+  })
 }

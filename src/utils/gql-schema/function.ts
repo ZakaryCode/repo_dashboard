@@ -17,7 +17,7 @@ const initProps: IProps = {
   stargazers: true,
   watchers: true,
   pushedAt: true,
-  count: 10
+  count: 5
 }
 
 export function queryRepository(
@@ -47,7 +47,7 @@ export function queryRepository(
   }`
     : ''
   const stargazersScheme = stargazers
-    ? `stargazers (first: ${count || 30}${
+    ? `stargazers (first: ${count || 1}${
         typeof stargazers === 'string' ? `, after: "${stargazers}"` : ''
       }) {
     nodes {
@@ -60,7 +60,7 @@ export function queryRepository(
   }`
     : ''
   const watchersScheme = watchers
-    ? `watchers (first: ${count || 30}${
+    ? `watchers (first: ${count || 1}${
         typeof watchers === 'string' ? `, after: "${watchers}"` : ''
       }) {
     nodes {

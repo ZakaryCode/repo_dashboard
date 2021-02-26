@@ -90,7 +90,7 @@ export async function inputRepo(
       }
     }
 
-    repoData.onerror = () => reject(new Error(`更新仓库信息 ${id} 失败!`))
+    repoData.onerror = () => reject(new Error(`读取仓库信息 ${id} 失败!`))
   })
 }
 
@@ -203,16 +203,15 @@ export async function inputWatchers(
   const watchers = request.objectStore('repositories_watchers')
   const watchersRepoIndex = watchers.index('by_repo_id')
   const watchersRepoCursor = watchersRepoIndex.openCursor(IDBKeyRange.only(id))
-  const nodes: { databaseId: number }[] =
-    data?.stargazers?.nodes?.slice(0) || []
+  const nodes: { databaseId: number }[] = data?.watchers?.nodes?.slice(0) || []
   const userInList: { databaseId: number }[] = []
   const list: Parameters<typeof inputWatcher>[] = []
 
   return new Promise((resolve, reject) => {
     watchersRepoCursor.onsuccess = (event) => {
       // @ts-ignore
-      const cursor = event.target?.result || []
-      if (cursor.length) {
+      const cursor = event.target?.result
+      if (cursor) {
         const value = cursor.value
         const index = nodes.findIndex((e) => e.databaseId === value.user_id)
         if (index >= 0) {
@@ -335,5 +334,126 @@ export async function readRepo(owner: string, name: string): Promise<void> {
     const repoData = repo.get(id)
     repoData.onsuccess = () => resolve(repoData.result)
     repoData.onerror = () => reject(new Error(`读取仓库信息 ${id} 失败!`))
+  })
+}
+
+export type TUser = {
+  anyPinnableItems: boolean
+  avatarUrl: string
+  bio?: string
+  commitComments: {
+    totalCount: number
+  }
+  company?: string
+  createdAt: string // Data string
+  email?: string
+  followers: {
+    totalCount: number
+  }
+  hasSponsorsListing: boolean
+  isBountyHunter: boolean
+  isDeveloperProgramMember: boolean
+  isEmployee: boolean
+  isHireable: boolean
+  isSiteAdmin: boolean
+  issues: {
+    totalCount: number
+  }
+  location?: string
+  login: string
+  name?: string
+  pullRequests: {
+    totalCount: number
+  }
+  starredRepositories: {
+    totalCount: number
+  }
+  twitterUsername?: string
+  updatedAt: string // Data string
+  watching: {
+    totalCount: number
+  }
+  websiteUrl?: string
+}
+
+export async function readStargazers(
+  owner: string,
+  name: string
+): Promise<TUser[]> {
+  const request = db.transaction(
+    ['repositories_stargazers', 'users'],
+    'readwrite'
+  )
+  const id = `${owner}/${name}`
+  const stargazers = request.objectStore('repositories_stargazers')
+  const stargazersRepoIndex = stargazers.index('by_repo_id')
+  const stargazersRepoCursor = stargazersRepoIndex.openCursor(
+    IDBKeyRange.only(id)
+  )
+  const users = request.objectStore('users')
+
+  return new Promise((resolve, reject) => {
+    const list: Promise<TUser>[] = []
+    stargazersRepoCursor.onsuccess = (event) => {
+      // @ts-ignore
+      const cursor = event.target?.result
+      if (cursor) {
+        const value = cursor.value
+        list.push(
+          new Promise((resolve) => {
+            const userData = users.get(value.user_id)
+            userData.onsuccess = () => resolve(userData.result)
+            userData.onerror = () =>
+              reject(new Error(`读取用户信息 ${id} 失败!`))
+          })
+        )
+        cursor.continue()
+      } else {
+        resolve(Promise.all(list))
+      }
+    }
+    stargazersRepoCursor.onerror = () =>
+      reject(new Error('读取 stargazers 信息失败！'))
+  })
+}
+
+export async function readWatchers(
+  owner: string,
+  name: string
+): Promise<TUser[]> {
+  const request = db.transaction(
+    ['repositories_watchers', 'users'],
+    'readwrite'
+  )
+  const id = `${owner}/${name}`
+  const stargazers = request.objectStore('repositories_watchers')
+  const stargazersRepoIndex = stargazers.index('by_repo_id')
+  const stargazersRepoCursor = stargazersRepoIndex.openCursor(
+    IDBKeyRange.only(id)
+  )
+  const users = request.objectStore('users')
+
+  return new Promise((resolve, reject) => {
+    const list: Promise<TUser>[] = []
+    stargazersRepoCursor.onsuccess = (event) => {
+      // @ts-ignore
+      const cursor = event.target?.result
+      if (cursor) {
+        const value = cursor.value
+        list.push(
+          new Promise((resolve) => {
+            const userData = users.get(value.user_id)
+            userData.onsuccess = () => resolve(userData.result)
+            userData.onerror = () =>
+              reject(new Error(`读取用户信息 ${id} 失败!`))
+          })
+        )
+        cursor.continue()
+      } else {
+        resolve(Promise.all(list))
+      }
+    }
+    stargazersRepoCursor.onerror = () =>
+      reject(new Error('读取 stargazers 信息失败！'))
   })
 }

@@ -1,10 +1,8 @@
 import * as echarts from 'echarts'
-import React, { useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef } from 'react'
+import { useInView } from 'react-intersection-observer'
 
-import {
-  parseCollaboratorsData,
-  parseStargazersData
-} from '../utils/echarts-data'
+import { useEchartsOptions } from '../utils/echarts-data'
 import { parseDate } from '../utils/time'
 
 interface IDialogProps {
@@ -12,32 +10,29 @@ interface IDialogProps {
 }
 
 function RepoDialog({ repoData }: IDialogProps) {
-  const collaboratorsChart = useRef<HTMLDivElement>(null)
-  const stargazersChart = useRef<HTMLDivElement>(null)
+  const echartsChart = useRef<HTMLDivElement>(null)
+  const [inViewRef, inView] = useInView()
+  const echartsOptions = useEchartsOptions(repoData)
+
+  const setRefs = useCallback(
+    (node) => {
+      // @ts-ignore
+      echartsChart.current = node
+      inViewRef(node)
+    },
+    [echartsChart, inViewRef]
+  )
 
   useEffect(() => {
-    if (!collaboratorsChart.current) return
-    const collaboratorOptions = parseCollaboratorsData(repoData)
-    if (collaboratorOptions) {
-      echarts.dispose(collaboratorsChart.current)
-      const chart = echarts.init(collaboratorsChart.current, {
-        renderer: 'svg'
-      })
-      chart.setOption(collaboratorOptions)
-    }
-  }, [collaboratorsChart, repoData])
-
-  useEffect(() => {
-    if (!stargazersChart.current) return
-    const stargazerOptions = parseStargazersData(repoData)
-    if (stargazerOptions) {
-      echarts.dispose(stargazersChart.current)
-      const chart = echarts.init(stargazersChart.current, {
-        renderer: 'svg'
-      })
-      chart.setOption(stargazerOptions)
-    }
-  }, [stargazersChart, repoData])
+    const current = echartsChart.current
+    if (!current || !echartsOptions || !inView) return
+    console.log('show', inView, JSON.stringify(echartsOptions))
+    echarts.dispose(current)
+    const chart = echarts.init(current, {
+      renderer: 'svg'
+    })
+    chart.setOption(echartsOptions)
+  }, [echartsChart, echartsOptions, inView])
 
   return (
     <details-dialog
@@ -45,7 +40,10 @@ function RepoDialog({ repoData }: IDialogProps) {
       data-target="notifications-list-subscription-form.customDialog"
       hidden
       role="dialog"
-      aria-modal="true"
+      style={{
+        width: 500,
+        maxHeight: 'none'
+      }}
     >
       <div className="SelectMenu-modal notifications-component-dialog-modal overflow-visible">
         <header className="d-none d-sm-flex flex-items-start pt-1">
@@ -74,7 +72,10 @@ function RepoDialog({ repoData }: IDialogProps) {
           <h1 className="pt-1 pr-4 pb-0 pl-0 f5 text-bold">Oak Board</h1>
         </header>
         <fieldset
-          style={{ width: '100%', overflow: 'hidden', paddingBottom: 16 }}
+          style={{
+            width: '100%',
+            overflow: 'hidden'
+          }}
         >
           <legend>
             <div className="text-small text-gray pt-0 pr-3 pb-3 pl-6 pl-sm-5 border-bottom mb-3">
@@ -83,17 +84,11 @@ function RepoDialog({ repoData }: IDialogProps) {
             </div>
           </legend>
           <div
-            ref={collaboratorsChart}
+            ref={setRefs}
             style={{
-              height: 200,
-              width: 300
-            }}
-          />
-          <div
-            ref={stargazersChart}
-            style={{
-              height: 200,
-              width: 300
+              minHeight: 360,
+              width: 500,
+              marginBottom: 5
             }}
           />
         </fieldset>

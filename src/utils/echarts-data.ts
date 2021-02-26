@@ -28,7 +28,11 @@ function diffYear(a: number, b: number) {
   return new Date(a - b).getFullYear() - 1970
 }
 
-function calcCount(arr: number[], value: number, limit = [0, 1, 10, 100, 1000]) {
+function calcCount(
+  arr: number[],
+  value: number,
+  limit = [0, 1, 10, 100, 1000]
+) {
   if (value < limit[0]) {
     return
   }
@@ -58,7 +62,7 @@ const yAxisNames = [
   },
   {
     key: 'starred',
-    value: ['[0, 1]', '(1, 10]', '(10, 100]', '(100, 1000]', '(1000, +∞)']
+    value: ['1', '(1, 10]', '(10, 100]', '(100, 1000]', '(1000, +∞)']
   },
   {
     key: 'commits',
@@ -108,7 +112,7 @@ export function useEchartsOptions(repoData) {
       const followerCount = u.followers.totalCount
       let activity = 0
       calcCount(regdatedAt, diffDate, [0, 1, 3, 5, 10])
-      calcCount(starredRepositories, starredCount, [0, 1, 10, 100, 1000])
+      calcCount(starredRepositories, starredCount, [1, 1, 10, 100, 1000])
       calcCount(commitComments, commitCount, [1, 1, 3, 5, 10])
       calcCount(issues, issuesCount, [0, 0, 10, 50, 100])
       calcCount(pullRequests, prCount, [0, 0, 10, 50, 100])
@@ -125,7 +129,7 @@ export function useEchartsOptions(repoData) {
       activity += Math.ceil(issuesCount / 10)
       activity += Math.ceil(prCount / 10)
       activity += Math.round(followerCount / 10)
-      calcCount(userActivity, activity, [0, 1, 3, 10])
+      calcCount(userActivity, activity, [0, 0, 1, 3, 10])
     })
     return [
       {
@@ -182,6 +186,9 @@ export function useEchartsOptions(repoData) {
                 watchers: false
               }
             },
+            tooltip: {
+              show: true
+            },
             xAxis: {
               show: true,
               name: xAxisNames[i],
@@ -231,7 +238,7 @@ export function useEchartsOptions(repoData) {
               'hardly',
               stargazersUserActivityData[0] + stargazersUserActivityData[1],
               watchersUserActivityData[0] + watchersUserActivityData[1]
-            ],
+            ]
           ]
         },
         series: [
@@ -300,6 +307,9 @@ export function useEchartsOptions(repoData) {
             zlevel: 100
           }
         ],
+        tooltip: {
+          show: false
+        },
         xAxis: {
           show: false
         },
@@ -339,7 +349,7 @@ export function useEchartsOptions(repoData) {
           },
           tooltip: {},
           legend: {
-            left: 'right'
+            align: 'right'
           }
         },
         options

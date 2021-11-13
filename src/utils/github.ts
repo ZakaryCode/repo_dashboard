@@ -83,7 +83,7 @@ export function useGithubToken() {
         })
         setViewer(viewer.name || viewer.login)
       } catch (error) {
-        console.error(error)
+        console.error('请求错误(query):', error)
       } finally {
         const pathname = window.location.pathname.replace(/^\//, '')
         const [owner, name] = pathname.split('/')
@@ -108,7 +108,7 @@ export function useGithubToken() {
         const updateAt = getCurrentDate()
         await syncRepo(client, owner, name, syncProcess, updateAt)
       } catch (error) {
-        console.error(error)
+        console.error('请求错误(sync):', error)
       } finally {
         setRepoData(await readRepo(owner, name))
         setSyncing(false)
@@ -151,91 +151,109 @@ async function syncRepo(
   const watchersCursor = cursor?.watchers
   const repoSchema = stargazersCursor
     ? queryRepository(owner, name, {
-        stargazers: stargazersCursor,
-        count: count.stargazers
-      })
+      stargazers: stargazersCursor,
+      count: count.stargazers
+    })
     : watchersCursor
-    ? queryRepository(owner, name, {
+      ? queryRepository(owner, name, {
         watchers: watchersCursor,
         count: count.watchers
       })
-    : queryRepository(owner, name)
-  await client.runGql({
-    type: 'graphql',
-    query: {
-      query: gql`{
+      : queryRepository(owner, name)
+
+  try {
+    await client.runGql({
+      type: 'graphql',
+      query: {
+        query: gql`{
 ${repoSchema}
 ${RateLimit}
 }
 ${pageInfoFields}
 ${userFields}`
-    },
-    callback: async ({ data, errors, ...rest }, nextTime) => {
-      const repository = data?.repository || rest?.repository
-      const stargazers = repository?.stargazers
-      const watchers = repository?.watchers
-      await inputRepository(owner, name, repository, updateAt)
-      syncProcess(
-        [stargazers?.nodes?.length || 0, watchers?.nodes?.length || 0],
-        [stargazers?.totalCount || 0, watchers?.totalCount || 0]
-      )
-      const stargazersPageInfo = stargazers?.pageInfo
-      if (
-        stargazersPageInfo &&
-        stargazersPageInfo.hasNextPage &&
-        stargazersPageInfo.endCursor
-      ) {
-        const args: Parameters<typeof syncRepo> = [
-          client,
-          owner,
-          name,
-          syncProcess,
-          updateAt,
-          {
-            stargazers: stargazersPageInfo.endCursor
+      },
+      callback: async ({ data, errors, ...rest }, nextTime) => {
+        if (errors) {
+          console.error('接口错误:', errors)
+        }
+        const repository = data?.repository || rest?.repository
+        const stargazers = repository?.stargazers
+        const watchers = repository?.watchers
+        await inputRepository(owner, name, repository, updateAt)
+        syncProcess(
+          [stargazers?.nodes?.length || 0, watchers?.nodes?.length || 0],
+          [stargazers?.totalCount || 0, watchers?.totalCount || 0]
+        )
+        const stargazersPageInfo = stargazers?.pageInfo
+        if (
+          stargazersPageInfo &&
+              stargazersPageInfo.hasNextPage &&
+              stargazersPageInfo.endCursor
+        ) {
+          const args: Parameters<typeof syncRepo> = [
+            client,
+            owner,
+            name,
+            syncProcess,
+            updateAt,
+            {
+              stargazers: stargazersPageInfo.endCursor
+            }
+          ]
+          try {
+            await sleep(nextTime)
+            await syncRepo(...args)
+          } catch (error) {
+            count.stargazers = Math.max(Math.floor(count.stargazers / 5), 1)
+            args[6] = count
+            await sleep(nextTime)
+            await syncRepo(...args)
+            console.error('请求重试(stargazers):', error)
           }
-        ]
-        try {
-          await sleep(nextTime)
-          await syncRepo(...args)
-        } catch (error) {
-          count.stargazers /= 2
-          args[6] = count
-          await sleep(nextTime)
-          await syncRepo(...args)
-          console.error(error)
+        }
+        const watchersPageInfo = watchers?.pageInfo
+        if (
+          watchersPageInfo &&
+              watchersPageInfo.hasNextPage &&
+              watchersPageInfo.endCursor
+        ) {
+          const args: Parameters<typeof syncRepo> = [
+            client,
+            owner,
+            name,
+            syncProcess,
+            updateAt,
+            {
+              watchers: watchersPageInfo.endCursor
+            }
+          ]
+          try {
+            await sleep(nextTime)
+            await syncRepo(...args)
+          } catch (error) {
+            count.watchers = Math.max(Math.floor(count.watchers / 5), 1)
+            args[6] = count
+            await sleep(nextTime)
+            await syncRepo(...args)
+            console.error('请求重试(watchers):', error)
+          }
         }
       }
-      const watchersPageInfo = watchers?.pageInfo
-      if (
-        watchersPageInfo &&
-        watchersPageInfo.hasNextPage &&
-        watchersPageInfo.endCursor
-      ) {
-        const args: Parameters<typeof syncRepo> = [
-          client,
-          owner,
-          name,
-          syncProcess,
-          updateAt,
-          {
-            watchers: watchersPageInfo.endCursor
-          }
-        ]
-        try {
-          await sleep(nextTime)
-          await syncRepo(...args)
-        } catch (error) {
-          count.watchers /= 2
-          args[6] = count
-          await sleep(nextTime)
-          await syncRepo(...args)
-          console.error(error)
-        }
-      }
-      if (errors) {
-        console.error(errors)
-      }
-    }
-  })
+    })
+  } catch (error) {
+    const args: Parameters<typeof syncRepo> = [
+      client,
+      owner,
+      name,
+      syncProcess,
+      updateAt,
+      cursor
+    ]
+    count.stargazers = Math.max(Math.floor(count.stargazers / 5), 1)
+    count.watchers = Math.max(Math.floor(count.watchers / 5), 1)
+    args[6] = count
+    await sleep(500)
+    await syncRepo(...args)
+    console.error('接口错误(syncRepo):', error)
+  }
 }

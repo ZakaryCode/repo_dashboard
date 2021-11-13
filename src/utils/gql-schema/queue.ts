@@ -183,6 +183,7 @@ export class GithubApiQueue {
     return res
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   query = async <TQ = Record<string, any>>(
     query: QueryOptions<OperationVariables, TQ & TQuery>
   ) => {
@@ -201,6 +202,7 @@ export class GithubApiQueue {
     return data
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   getList = async (list: IGithubFetchType[]) => {
     const listRes = list.map((l) => {
       return new Promise((resolve) => {
